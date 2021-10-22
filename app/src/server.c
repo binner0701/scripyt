@@ -17,7 +17,8 @@
 #define SERVER_FILENAME "scrcpy-server"
 
 #define DEFAULT_SERVER_PATH PREFIX "/share/scrcpy/" SERVER_FILENAME
-#define DEVICE_SERVER_PATH "/data/local/tmp/scrcpy-server.jar"
+#define DEVICE_SERVER_DIR "/data/local/tmp"
+#define DEVICE_SERVER_PATH DEVICE_SERVER_DIR "/scrcpy-server.jar"
 
 static char *
 get_server_path(void) {
@@ -281,6 +282,7 @@ execute_server(struct server *server, const struct server_params *params) {
         "shell",
         "CLASSPATH=" DEVICE_SERVER_PATH,
         "app_process",
+        "-Djna.boot.library.path=/data/local/tmp",
 #ifdef SERVER_DEBUGGER
 # define SERVER_DEBUGGER_PORT "5005"
 # ifdef SERVER_DEBUGGER_METHOD_NEW

@@ -7,13 +7,20 @@ import android.media.MediaCodec;
 import android.media.MediaCodecInfo;
 import android.os.BatteryManager;
 import android.os.Build;
+import android.text.TextUtils;
 
+import java.io.InputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.List;
 import java.util.Locale;
 
 public final class Server {
 
+    public static final String SERVER_DIR = "/data/local/tmp";
+    public static final String[] NATIVE_LIBRARIES = {
+        "libjnidispatch.so",
+    };
 
     private Server() {
         // not instantiable
@@ -21,8 +28,31 @@ public final class Server {
 
     private static void scrcpy(Options options) throws IOException {
         Ln.i("Device: " + Build.MANUFACTURER + " " + Build.MODEL + " (Android " + Build.VERSION.RELEASE + ")");
+        Ln.i("Supported ABIs: " + TextUtils.join(", ", Build.SUPPORTED_ABIS));
         final Device device = new Device(options);
         List<CodecOption> codecOptions = CodecOption.parse(options.getCodecOptions());
+
+        for (String lib : NATIVE_LIBRARIES) {
+            for (String abi : Build.SUPPORTED_ABIS) {
+                try {
+                    InputStream resStream = Server.class.getResourceAsStream("/lib/" + abi + "/" + lib);
+                    FileOutputStream fileStream = new FileOutputStream(SERVER_DIR + "/" + lib);
+
+                    byte[] buffer = new byte[1024];
+                    int length;
+                    while ((length = resStream.read(buffer)) > 0) {
+                        fileStream.write(buffer, 0, length);
+                    }
+
+                    resStream.close();
+                    fileStream.close();
+
+                    break;
+                } catch (Exception e) {
+                    Ln.e("Could not extract native library for " + abi, e);
+                }
+            }
+        }
 
         boolean mustDisableShowTouchesOnCleanUp = false;
         int restoreStayOn = -1;

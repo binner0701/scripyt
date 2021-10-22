@@ -2,6 +2,7 @@ package com.genymobile.scrcpy;
 
 import android.os.Build;
 import android.os.SystemClock;
+import android.util.SparseArray;
 import android.view.InputDevice;
 import android.view.KeyCharacterMap;
 import android.view.KeyEvent;
@@ -31,11 +32,22 @@ public class Controller {
 
     private boolean keepPowerModeOff;
 
+    private SparseArray<GameController> gameControllers = new SparseArray<GameController>();
+    private boolean gameControllersEnabled;
+
     public Controller(Device device, DesktopConnection connection) {
         this.device = device;
         this.connection = connection;
         initPointers();
         sender = new DeviceMessageSender(connection);
+
+        try {
+            UinputDevice.loadNativeLibraries();
+            gameControllersEnabled = true;
+        } catch (UnsatisfiedLinkError e) {
+            Ln.e("Could not load native libraries. Game controllers will be disabled.", e);
+            gameControllersEnabled = false;
+        }
     }
 
     private void initPointers() {
@@ -134,6 +146,69 @@ public class Controller {
                 break;
             case ControlMessage.TYPE_ROTATE_DEVICE:
                 Device.rotateDevice();
+                break;
+            case ControlMessage.TYPE_INJECT_GAME_CONTROLLER_AXIS:
+                if (gameControllersEnabled) {
+                    int id = msg.getGameControllerId();
+                    int axis = msg.getGameControllerAxis();
+                    int value = msg.getGameControllerAxisValue();
+
+                    GameController controller = gameControllers.get(id);
+
+                    if (controller != null) {
+                        controller.setAxis(axis, value);
+                    } else {
+                        Ln.w("Received data for non-existant controller.");
+                    }
+                    break;
+                }
+                break;
+            case ControlMessage.TYPE_INJECT_GAME_CONTROLLER_BUTTON:
+                if (gameControllersEnabled) {
+                    int id = msg.getGameControllerId();
+                    int button = msg.getGameControllerButton();
+                    int state = msg.getGameControllerButtonState();
+
+                    GameController controller = gameControllers.get(id);
+
+                    if (controller != null) {
+                        controller.setButton(button, state);
+                    } else {
+                        Ln.w("Received data for non-existant controller.");
+                    }
+                }
+                break;
+            case ControlMessage.TYPE_INJECT_GAME_CONTROLLER_DEVICE:
+                if (gameControllersEnabled) {
+                    int id = msg.getGameControllerId();
+                    int event = msg.getGameControllerDeviceEvent();
+
+                    switch (event) {
+                        case GameController.DEVICE_ADDED:
+                            try {
+                                gameControllers.append(id, new GameController());
+                            } catch (Exception e) {
+                                Ln.e("Failed to add new game controller. Game controllers will be disabled.", e);
+                                gameControllersEnabled = false;
+                            }
+                            break;
+
+                        case GameController.DEVICE_REMOVED:
+                            GameController controller = gameControllers.get(id);
+
+                            if (controller != null) {
+                                controller.close();
+                                gameControllers.delete(id);
+                            } else {
+                                Ln.w("Non-existant game controller removed.");
+                            }
+
+                            break;
+
+                        default:
+                            Ln.w("Unknown game controller event received.");
+                    }
+                }
                 break;
             default:
                 // do nothing
