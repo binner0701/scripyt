@@ -64,6 +64,9 @@ struct sc_screen {
     SDL_Keycode mouse_capture_key_pressed;
 
     AVFrame *frame;
+
+    bool paused;
+    AVFrame *resume_frame;
 };
 
 struct sc_screen_params {
@@ -75,7 +78,7 @@ struct sc_screen_params {
     bool forward_all_clicks;
     bool legacy_paste;
     bool clipboard_autosync;
-    const struct sc_shortcut_mods *shortcut_mods;
+    uint8_t shortcut_mods; // OR of enum sc_shortcut_mod values
 
     const char *window_title;
     bool always_on_top;
@@ -134,6 +137,10 @@ sc_screen_resize_to_pixel_perfect(struct sc_screen *screen);
 void
 sc_screen_set_orientation(struct sc_screen *screen,
                           enum sc_orientation orientation);
+
+// set the display pause state
+void
+sc_screen_set_paused(struct sc_screen *screen, bool paused);
 
 // react to SDL events
 // If this function returns false, scrcpy must exit with an error.
