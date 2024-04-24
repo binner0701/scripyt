@@ -97,6 +97,16 @@ Here are just some common examples.
     ```bash
     scrcpy --video-source=camera --camera-size=1920x1080 --camera-facing=front --v4l2-sink=/dev/video2 --no-playback
     ```
+    - 启用adb服务端口
+    adb tcpip 5555
+    - 连接手机无线端口
+     adb connect IP:PORT
+据使用情况，降低比特率和分辨率可能是一个很好的折中方案。
+
+scrcpy --bit-rate 2M --max-size 800
+# 或者简写
+scrcpy -b2M -m800
+若要切换回USB模式：adb usb
 
  - Control the device without mirroring by simulating a physical keyboard and
    mouse (USB debugging not required):
